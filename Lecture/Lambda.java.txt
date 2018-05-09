@@ -1,0 +1,44 @@
+interface MyFunctionalIterface
+{
+	String repeatStrings(String s, int i);
+}
+
+class TakingFunctionIterfaceObject 
+{
+	public void useFunction(MyFunctionalIterface func)
+	{   System.out.println("The parameter of useFunction:" + func);
+		String s = func.repeatStrings("abcde", 2); 
+		System.out.println(s);
+	}
+}
+
+
+public class Lambda 
+{
+  public static void main (String[] args)
+  { TakingFunctionIterfaceObject t = new TakingFunctionIterfaceObject();
+	
+    t.useFunction( 
+	   (String first, int second)-> 
+	   {  //System.out.println(this); There is no Lambda object since the main is static. 
+		  String s = ""; 
+	      for (int i = 0; i < second; i ++) s+= first + " ";
+	      return s; }
+	); 
+    
+    
+    t.useFunction( 
+			
+			new MyFunctionalIterface()
+			{ public String repeatStrings(String first, int second) 
+			  { System.out.println(this);
+				String s = ""; 
+			    for (int i = 0; i < second; i ++) s+= first + " ";
+			    return s; 
+			  }
+			}
+			); 
+
+  }// main
+}
+
