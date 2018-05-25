@@ -1,91 +1,115 @@
-import java.util.concurrent.*;
+package bank.one;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 
 public class Bank {
-    BlockingQueue<Transaction> queue;
-    private final Transaction nullTrans = new Transaction(-1,0,0);
+	
+	public void getTransactions(String fileToRead, int numOfWorkers)
+			throws FileNotFoundException, InterruptedException {
+		
+		BufferedReader br = new BufferedReader(new FileReader(new File(fileToRead)));
+		String temp = null;
+		try {
+			temp = br.readLine();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		while (temp != null) {
+			String s[] = temp.split(" ");
+			int id1 = Integer.parseInt(s[0]);
+			int id2 = Integer.parseInt(s[1]);
+			int amount = Integer.parseInt(s[2]);
+			try {
+				temp = br.readLine();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Transaction trans = new Transaction(id1, id2, amount, accounts);
+			queue.put(trans);
+		}
 
-    public Bank() {
-        queue = new LinkedBlockingQueue();
-    }
+		for (int i = 0; i < numOfWorkers; i++) {
+			Transaction e = new Transaction(-1, 0, 0, accounts);
+			queue.put(e);
+		}
 
-    // TODO: Add code for actually updating accounts. 
-    // Should you make this synchronized? Why or why not?
-    // If not, how do you avoid concurrency issues?
-    public synchronized void processTransaction(Transaction t) {
-        System.out.println("Updating account with transaction");
-    }
-
-    private class Worker extends Thread {
-        public void run() {
-            try {
-                Transaction t;
-                do {
-                    t = queue.take();
-                    processTransaction(t);
-                    System.out.println(this.getName() + t);
-                } while (t.fromAccount != -1);
-            } catch (InterruptedException e) {
-                System.out.println("interrupted");
-            }
-            System.out.println(this.getName()  + "exiting");
-        }
-    }
+		try {
+			br.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 
-    public static void main(String[] args) {
-        Bank bank = new Bank();
+	public void printValues() throws InterruptedException {	
+		count.await();
+		for (int i = 0; i < NUMBER_OF_ACCOUNTS; i++) {
+			System.out.println(this.accounts[i].toString());
+		}
+	}
 
-        // TODO: Replace the following with code to generate as
-        // many workers as needed. The number of workers is
-        // Given as a commandline argument. 
-        Worker w1 = bank.new Worker();
-        Worker w2 = bank.new Worker();
+	
 
-        try {
-            w1.start();
-            w2.start();
+	public void runParallel(int workers) throws InterruptedException {
+		List<Worker> theWorkers = new ArrayList<Worker>();
+		for (int i = 0; i < workers; i++) {
+			Worker worker = new Worker();
+			theWorkers.add(worker);
+			worker.start();
+		}
+	}
+	
+	public Bank(int numOfWorkers) {
+		accounts = new Account[NUMBER_OF_ACCOUNTS];
+		for (int i = 0; i < NUMBER_OF_ACCOUNTS; i++) {
+			accounts[i] = new Account(i);
+		}
 
-            // TODO: replace the following with code for 
-            // reading from the file and putting the transactions 
-            // into the BlockingQueue
-            System.out.println("Putting 10 values from main");
-            for (int i = 0; i< 10; i++) {
-                bank.queue.put(new Transaction(
-                    (int)(Math.random()*10), 
-                    (int)(Math.random()*10), 
-                    (int)(Math.random()*1000)));
-            }
+		queue = new ArrayBlockingQueue<>(12);
+		count = new CountDownLatch(numOfWorkers);
+		semaphoreLock = new Semaphore(6);
+	}
 
-            bank.queue.put(bank.nullTrans);
-            bank.queue.put(bank.nullTrans);
-            System.out.println("Main finished adding all transactions");
-            // TODO: Add code here to wait for ALL the workers to finish
-            w1.join();
-            w2.join();
-        } catch (InterruptedException e) {
-            System.out.println("interrupted");
-        }
-        System.out.println("All threads done");
-        
-    }
+	class Worker extends Thread {
+		public void run() {
+			
+			boolean finished = false;
+			while (!finished) 
+				try {
+					semaphoreLock.acquire();
+					Transaction trans = queue.take();
+					if (trans.getAcct1().getId() < 0) {
+						finished = true;
+						count.countDown();
+					} else {
+						trans.makeTransaction();
+					}
+					semaphoreLock.release();
+				} catch (Exception e) {
+
+				
+			}
+		}
+	}
+	
+	private static final int NUMBER_OF_ACCOUNTS = 20;
+	private Account[] accounts;
+	private BlockingQueue<Transaction> queue;
+	private CountDownLatch count;
+	private Semaphore semaphoreLock;
+
+
 }
-
-class Transaction {
-    int fromAccount;
-    int toAccount;
-    int amount;
-
-    public Transaction(int from, int to, int amt) {
-        fromAccount = from;
-        toAccount = to;
-        amount = amt;
-    }
-
-    public String toString() {
-        return "Transaction: from = " + fromAccount + ", to = " + toAccount + " amount = " + amount;
-    }
-
-}
-
-//TODO: Create an Account class with id, num of transactions and account balance
