@@ -9,12 +9,12 @@
 ![image](https://user-images.githubusercontent.com/25129580/40894749-4eaf7d6e-67c9-11e8-9f23-4d17240e9f42.png)
 
 
-##Min List Problem
+## Min List Problem
 
 ![image](https://user-images.githubusercontent.com/25129580/40894778-7f2d673a-67c9-11e8-9790-ede9d24d11d3.png)
 
 
-##SuperClass Extractor
+## SuperClass Extractor
 
 ![image](https://user-images.githubusercontent.com/25129580/40894806-a665bf50-67c9-11e8-95bc-87ae4c2a72e2.png)
 
